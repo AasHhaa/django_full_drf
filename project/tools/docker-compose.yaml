@@ -1,0 +1,95 @@
+version: '3.3'
+
+volumes:
+  db-data:
+    driver: local
+
+services:
+
+#  monitoring-ui:
+#    build: ./ui_monitoring/
+#    depends_on:
+#      - monitoring_api
+#    environment:
+#      - host=monitoring-api
+#      - port=5000
+#    ports:
+#      - 5555:80
+
+  django_rest_framework_api:
+    container_name: django_rest_framework_api
+    build:
+      dockerfile: Dockerfile
+      context: ./
+    environment:
+      - DJANGO_SECRET_KEY=dbaa1_i7%*3r9-=z-+_mz4r-!qeed@(-a_r(g@k8jo8y3r27%m
+      - REDIS_HOST=redis
+      - REDIS_PORT=6377
+      - POSTGRES_HOST=postgres_db_rest_framework
+#      - DATABASE_URL=postgres://postgres:postgres@postgres_db_rest_framework/postgres
+      - CELERY_BROKER_URL=redis
+    command: sh -c "
+      python manage.py migrate &&
+      python manage.py runserver 0.0.0.0:8000"
+    depends_on:
+      - postgres_db_rest_framework
+#      - redis
+    ports:
+      - 8000:8000
+    volumes:
+      - ./:/work_dir
+
+  postgres_db_rest_framework:
+    image: postgres
+    container_name: postgres_db_rest_framework
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - db-data:/var/lib/postgresql/data_rest_framework
+    ports:
+      - "5433:5432"
+#
+#
+#  celery:
+#    build:
+#      dockerfile: Dockerfile
+#      context: ./
+#    container_name: celery_worker
+#    command: sh -c "celery -A configuration worker -l info"
+#    volumes:
+#      - ./:/work_dir
+#    depends_on:
+#      - django_rest_framework_api
+#      - redis
+#      - postgres_db_rest_framework
+#    environment:
+#      - DEBUG=1
+#      - SECRET_KEY=dbaa1_i7%*3r9-=z-+_mz4r-!qeed@(-a_r(g@k8jo8y3r27%m
+#      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+#
+#  celery-beat:
+#    build:
+#      dockerfile: Dockerfile
+#      context: ./
+#    container_name: celery_beat
+#    command: sh -c "celery -A configuration beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+#
+#    volumes:
+#      - ./:/work_dir
+#    depends_on:
+#      - django_rest_framework_api
+#      - redis
+#      - postgres_db_rest_framework
+#    environment:
+#      - DEBUG=1
+#      - SECRET_KEY=dbaa1_i7%*3r9-=z-+_mz4r-!qeed@(-a_r(g@k8jo8y3r27%m
+#      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+#
+#  redis:
+#    image: redis
+#    ports:
+#      - "6378:6379"
+#    volumes:
+#      - ../data/redis:/data
